@@ -1,19 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
-import { MOCK_ROOMS } from '../data/mockRooms';
+import { dbService } from './dbService';
 import { FilterState, Room } from '../types';
 
 export const fetchRooms = async (filters: FilterState): Promise<Room[]> => {
-  // Simulate network roundtrip latency (150ms)
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  // Query from persistent DB
+  const allRooms = await dbService.getRooms();
 
-  return MOCK_ROOMS.filter((room) => {
-    // 1. Search filter
+  return allRooms.filter((room) => {
+    // 1. Search query
     if (filters.search.trim()) {
       const q = filters.search.toLowerCase().trim();
       const matchName = room.name.toLowerCase().includes(q);
       const matchBuilding = room.building.toLowerCase().includes(q);
+      const matchFloor = room.floor.toLowerCase().includes(q);
+      const matchDesc = room.description.toLowerCase().includes(q);
       const matchAmenities = room.amenities.some((a) => a.toLowerCase().includes(q));
-      if (!matchName && !matchBuilding && !matchAmenities) return false;
+      if (!matchName && !matchBuilding && !matchFloor && !matchDesc && !matchAmenities) return false;
     }
 
     // 2. Building filter
@@ -41,15 +43,14 @@ export const fetchRooms = async (filters: FilterState): Promise<Room[]> => {
 };
 
 export const fetchRoomById = async (roomId: string): Promise<Room | undefined> => {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  return MOCK_ROOMS.find((r) => r.id === roomId);
+  return dbService.getRoomById(roomId);
 };
 
 export const useRoomsQuery = (filters: FilterState) => {
   return useQuery({
     queryKey: ['rooms', filters],
     queryFn: () => fetchRooms(filters),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30, // 30 seconds
   });
 };
 
@@ -58,6 +59,6 @@ export const useRoomDetailsQuery = (roomId: string) => {
     queryKey: ['room', roomId],
     queryFn: () => fetchRoomById(roomId),
     enabled: !!roomId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60,
   });
 };

@@ -29,149 +29,174 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, index = 0, 
     return getEarliestAvailableSlot(room.id);
   }, [room.id, getEarliestAvailableSlot]);
 
+  const typeLabels: Record<string, string> = {
+    lab: 'LAB THỰC HÀNH',
+    library: 'THƯ VIỆN SỐ',
+    study_pod: 'POD TỰ HỌC',
+    conference: 'HỘI TRƯỜNG / LỚP',
+  };
+
   return (
     <Animated.View
-      entering={FadeInDown.delay(Math.min(index * 60, 360)).duration(400).springify().damping(15)}
+      style={styles.animatedWrapper}
+      entering={FadeInDown.delay(Math.min(index * 30, 200)).duration(300).springify().damping(16)}
     >
       <TouchableOpacity
         style={styles.card}
         onPress={() => onPress(room)}
-        activeOpacity={0.9}
+        activeOpacity={0.92}
       >
-      {/* Room Photo */}
-      <View style={styles.imageWrapper}>
-        <Image
-          source={{ uri: room.imageUrl }}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        {/* Room Photo Banner */}
+        <View style={styles.imageWrapper}>
+          <Image
+            source={{ uri: room.imageUrl }}
+            style={styles.image}
+            resizeMode="cover"
+          />
 
-        {/* Status Badge overlay */}
-        <View
-          style={[
-            styles.statusBadge,
-            isAvailable ? styles.statusAvailable : styles.statusOccupied,
-          ]}
-        >
+          {/* Status Badge overlay */}
           <View
             style={[
-              styles.statusDot,
-              { backgroundColor: isAvailable ? colors.success : colors.warning },
-            ]}
-          />
-          <Text
-            style={[
-              styles.statusText,
-              { color: isAvailable ? colors.success : '#B45309' },
+              styles.statusBadge,
+              isAvailable ? styles.statusAvailable : styles.statusOccupied,
             ]}
           >
-            {room.status}
-          </Text>
-        </View>
+            <View
+              style={[
+                styles.statusDot,
+                { backgroundColor: isAvailable ? colors.success : colors.warning },
+              ]}
+            />
+            <Text
+              style={[
+                styles.statusText,
+                { color: isAvailable ? colors.success : '#B45309' },
+              ]}
+            >
+              {isAvailable ? 'Đang mở' : 'Đã kín lịch'}
+            </Text>
+          </View>
 
-        {/* Type pill overlay */}
-        <View style={styles.typeBadge}>
-          <Text style={styles.typeText}>{room.type.toUpperCase()}</Text>
-        </View>
-      </View>
+          {/* Room Type badge */}
+          <View style={styles.typeBadge}>
+            <Text style={styles.typeText}>{typeLabels[room.type] || room.type.toUpperCase()}</Text>
+          </View>
 
-      {/* Content details */}
-      <View style={styles.content}>
-        <View style={styles.titleRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {room.name}
-          </Text>
-          <View style={styles.ratingBox}>
-            <Ionicons name="star" size={13} color="#F59E0B" />
-            <Text style={styles.ratingText}>{room.rating}</Text>
+          {/* Capacity pill */}
+          <View style={styles.capacityBadge}>
+            <Ionicons name="people" size={12} color="#FFFFFF" />
+            <Text style={styles.capacityText}>{room.capacity} chỗ</Text>
           </View>
         </View>
 
-        {/* Building and Floor */}
-        <View style={styles.metaRow}>
-          <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
-          <Text style={styles.metaText} numberOfLines={1}>
-            {room.building} • {room.floor}
-          </Text>
-        </View>
-
-        {/* Capacity */}
-        <View style={styles.metaRow}>
-          <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-          <Text style={styles.capacityHighlight}>
-            {room.capacity} seats
-          </Text>
-        </View>
-
-        {/* Amenities preview tags */}
-        <View style={styles.amenitiesRow}>
-          {room.amenities.slice(0, 3).map((item, index) => (
-            <View key={index} style={styles.amenityTag}>
-              <Text style={styles.amenityText} numberOfLines={1}>
-                {item}
-              </Text>
+        {/* Content details */}
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {room.name}
+            </Text>
+            <View style={styles.ratingBox}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.ratingText}>{room.rating.toFixed(2)}</Text>
             </View>
-          ))}
-          {room.amenities.length > 3 && (
-            <View style={styles.amenityTag}>
-              <Text style={styles.amenityText}>+{room.amenities.length - 3}</Text>
-            </View>
-          )}
-        </View>
+          </View>
 
-        {/* Action Buttons: ⚡ Quick Book & View Details */}
-        <View style={styles.footerRow}>
-          {nextSlot ? (
+          {/* Building and Floor */}
+          <View style={styles.metaRow}>
+            <Ionicons name="business-outline" size={14} color={colors.primary} />
+            <Text style={styles.metaText} numberOfLines={1}>
+              <Text style={{ fontWeight: '600', color: colors.textPrimary }}>{room.building}</Text> • {room.floor}
+            </Text>
+          </View>
+
+          {/* Description snippet */}
+          <Text style={styles.descSnippet} numberOfLines={2}>
+            {room.description}
+          </Text>
+
+          {/* Amenities tags */}
+          <View style={styles.amenitiesRow}>
+            {room.amenities.slice(0, 3).map((item, idx) => (
+              <View key={idx} style={styles.amenityTag}>
+                <Ionicons name="checkmark-circle-outline" size={11} color={colors.primary} style={{ marginRight: 3 }} />
+                <Text style={styles.amenityText} numberOfLines={1}>
+                  {item}
+                </Text>
+              </View>
+            ))}
+            {room.amenities.length > 3 && (
+              <View style={[styles.amenityTag, { backgroundColor: colors.primaryLight }]}>
+                <Text style={[styles.amenityText, { color: colors.primary, fontWeight: '700' }]}>
+                  +{room.amenities.length - 3}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Footer Actions */}
+          <View style={styles.footerRow}>
+            {nextSlot ? (
+              <TouchableOpacity
+                style={[styles.quickBookBtn, styles.pointerCursor]}
+                onPress={() => onQuickBook(room)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="flash" size={13} color="#FFFFFF" />
+                <Text style={styles.quickBookBtnText} numberOfLines={1}>
+                  Đặt {nextSlot.dateLabel} ({nextSlot.slot.startTime})
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.noSlotBox}>
+                <Ionicons name="time-outline" size={13} color={colors.textMuted} />
+                <Text style={styles.noSlotText}>Kín slot 4 ngày</Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={styles.quickBookBtn}
-              onPress={() => onQuickBook(room)}
-              activeOpacity={0.8}
+              style={[styles.detailsBtn, styles.pointerCursor]}
+              onPress={() => onPress(room)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="flash" size={14} color="#FFFFFF" />
-              <Text style={styles.quickBookBtnText}>
-                Đặt nhanh {nextSlot.dateLabel} ({nextSlot.slot.startTime})
-              </Text>
+              <Text style={styles.detailsBtnText}>Chi tiết</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
             </TouchableOpacity>
-          ) : (
-            <Text style={styles.noSlotText}>Hết slot 4 ngày tới</Text>
-          )}
-
-          <TouchableOpacity
-            style={styles.detailsBtn}
-            onPress={() => onPress(room)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.detailsBtnText}>Chi tiết</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
-          </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
     </Animated.View>
   );
 });
 
 const styles = StyleSheet.create({
+  animatedWrapper: {
+    flex: 1,
+    minWidth: 280,
+  },
   card: {
-    backgroundColor: colors.card,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 8,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
+        shadowColor: '#0F172A',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 2,
+        elevation: 3,
       },
       web: {
-        boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.07)',
+        cursor: 'pointer',
       },
     }),
   },
@@ -187,21 +212,21 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 10,
+    right: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     borderRadius: 20,
     borderWidth: 1,
   },
   statusAvailable: {
-    backgroundColor: colors.successLight,
+    backgroundColor: 'rgba(236, 253, 245, 0.95)',
     borderColor: '#A7F3D0',
   },
   statusOccupied: {
-    backgroundColor: colors.warningLight,
+    backgroundColor: 'rgba(255, 251, 235, 0.95)',
     borderColor: '#FDE68A',
   },
   statusDot: {
@@ -213,25 +238,43 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 0.2,
   },
   typeBadge: {
     position: 'absolute',
-    bottom: 12,
-    left: 12,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(10, 37, 64, 0.85)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   typeText: {
     color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  capacityBadge: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  capacityText: {
+    color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   content: {
     padding: 14,
+    flex: 1,
+    justifyContent: 'space-between',
   },
   titleRow: {
     flexDirection: 'row',
@@ -240,11 +283,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     color: colors.textPrimary,
     flex: 1,
-    marginRight: 8,
+    marginRight: 6,
   },
   ratingBox: {
     flexDirection: 'row',
@@ -254,10 +297,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: '#B45309',
   },
   metaRow: {
@@ -267,30 +312,35 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   metaText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     flex: 1,
   },
-  capacityHighlight: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.primary,
+  descSnippet: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    lineHeight: 17,
+    marginTop: 6,
   },
   amenitiesRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 5,
     marginTop: 10,
     marginBottom: 10,
   },
   amenityTag: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
   },
   amenityText: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
     fontWeight: '500',
   },
@@ -301,8 +351,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.borderLight,
     paddingTop: 10,
-    marginTop: 2,
-    gap: 8,
+    marginTop: 4,
+    gap: 6,
   },
   quickBookBtn: {
     flex: 1,
@@ -311,18 +361,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    gap: 4,
   },
   quickBookBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
-  noSlotText: {
+  noSlotBox: {
     flex: 1,
-    fontSize: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  noSlotText: {
+    fontSize: 11,
     color: colors.textMuted,
     fontStyle: 'italic',
   },
@@ -336,8 +391,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
   },
   detailsBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.primary,
+  },
+  pointerCursor: {
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
 });

@@ -5,9 +5,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { TIME_SLOTS } from '../data/mockRooms';
+import { TIME_SLOTS } from '../data/vkuRooms';
 import { TimeSlot } from '../types';
 import { useBookingStore } from '../store/useBookingStore';
 import { colors } from '../theme/colors';
@@ -37,9 +38,9 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
       const d = new Date();
       d.setDate(d.getDate() + i);
       const iso = d.toISOString().split('T')[0];
-      const dayName = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayName = i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : `Thứ ${d.getDay() === 0 ? 'CN' : d.getDay() + 1}`;
       const dayNum = d.getDate();
-      const monthName = d.toLocaleDateString('en-US', { month: 'short' });
+      const monthName = `Th${d.getMonth() + 1}`;
       dates.push({ iso, dayName, dayNum, monthName });
     }
     return dates;
@@ -48,7 +49,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
   const handleSlotPress = (slot: TimeSlot, isBooked: boolean) => {
     if (isBooked) {
       setConflictWarning(
-        `Slot "${slot.label}" is already reserved for this date. Please choose another slot.`
+        `Ca học "${slot.label}" đã có sinh viên hoặc giảng viên đăng ký trước. Vui lòng chọn ca khác.`
       );
       return;
     }
@@ -56,10 +57,16 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
     onSelectSlot(slot);
   };
 
+  const periodLabels: Record<string, string> = {
+    Morning: 'Buổi Sáng',
+    Afternoon: 'Buổi Chiều',
+    Evening: 'Buổi Tối',
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>1. Select Booking Date</Text>
-      
+      <Text style={styles.sectionTitle}>1. Chọn ngày học tập / nghiên cứu</Text>
+
       {/* Date selector pills */}
       <ScrollView
         horizontal
@@ -71,7 +78,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
           return (
             <TouchableOpacity
               key={item.iso}
-              style={[styles.dateCard, isSelected && styles.dateCardActive]}
+              style={[styles.dateCard, isSelected && styles.dateCardActive, styles.pointerCursor]}
               onPress={() => {
                 setConflictWarning(null);
                 onSelectDate(item.iso);
@@ -94,12 +101,12 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
 
       {/* Time Slots */}
       <View style={styles.slotHeaderRow}>
-        <Text style={styles.sectionTitle}>2. Choose Available Time Slot</Text>
+        <Text style={styles.sectionTitle}>2. Chọn ca học tập (VKU Time Slot)</Text>
         <View style={styles.legend}>
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-          <Text style={styles.legendText}>Free</Text>
+          <Text style={styles.legendText}>Trống</Text>
           <View style={[styles.legendDot, { backgroundColor: '#CBD5E1', marginLeft: 8 }]} />
-          <Text style={styles.legendText}>Booked</Text>
+          <Text style={styles.legendText}>Đã đặt</Text>
         </View>
       </View>
 
@@ -125,12 +132,13 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
                 styles.slotItem,
                 isSelected && styles.slotItemSelected,
                 isBooked && styles.slotItemBooked,
+                !isBooked && styles.pointerCursor,
               ]}
               onPress={() => handleSlotPress(slot, isBooked)}
               activeOpacity={0.7}
             >
               <View style={styles.slotInfo}>
-                <View style={styles.slotPeriodBadge}>
+                <View style={[styles.slotPeriodBadge, isSelected && styles.slotPeriodBadgeSelected]}>
                   <Text
                     style={[
                       styles.slotPeriodText,
@@ -138,7 +146,7 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
                       isBooked && styles.textBooked,
                     ]}
                   >
-                    {slot.period}
+                    {periodLabels[slot.period] || slot.period}
                   </Text>
                 </View>
                 <Text
@@ -155,16 +163,16 @@ export const SlotSelector: React.FC<SlotSelectorProps> = ({
               {/* Status pill right */}
               {isBooked ? (
                 <View style={styles.badgeBooked}>
-                  <Ionicons name="lock-closed" size={12} color="#64748B" />
-                  <Text style={styles.badgeBookedText}>Reserved</Text>
+                  <Ionicons name="lock-closed" size={11} color="#64748B" />
+                  <Text style={styles.badgeBookedText}>Đã có lớp</Text>
                 </View>
               ) : isSelected ? (
                 <View style={styles.badgeSelected}>
-                  <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                  <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
                 </View>
               ) : (
                 <View style={styles.badgeAvailable}>
-                  <Text style={styles.badgeAvailableText}>Available</Text>
+                  <Text style={styles.badgeAvailableText}>Có thể đặt</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -180,23 +188,23 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textPrimary,
     marginBottom: 8,
   },
   dateList: {
-    gap: 10,
-    paddingVertical: 6,
+    gap: 8,
+    paddingVertical: 4,
     marginBottom: 16,
   },
   dateCard: {
-    width: 72,
+    width: 76,
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   dateCardActive: {
@@ -206,18 +214,18 @@ const styles = StyleSheet.create({
   dateDayName: {
     fontSize: 11,
     color: colors.textSecondary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: '700',
   },
   dateDayNum: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
     marginVertical: 2,
   },
   dateMonth: {
     fontSize: 11,
     color: colors.textMuted,
+    fontWeight: '600',
   },
   textWhite: {
     color: '#FFFFFF',
@@ -226,16 +234,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   legend: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     marginRight: 4,
   },
   legendText: {
@@ -248,14 +256,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.errorLight,
     padding: 10,
     borderRadius: 8,
-    marginBottom: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: colors.errorBorder,
   },
   warningText: {
     fontSize: 12,
     color: colors.error,
-    fontWeight: '500',
+    fontWeight: '600',
     flex: 1,
   },
   slotGrid: {
@@ -266,10 +274,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 11,
     borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
     borderColor: colors.border,
   },
   slotItemSelected: {
@@ -279,27 +287,30 @@ const styles = StyleSheet.create({
   slotItemBooked: {
     backgroundColor: '#F1F5F9',
     borderColor: '#E2E8F0',
-    opacity: 0.7,
+    opacity: 0.65,
   },
   slotInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   slotPeriodBadge: {
-    backgroundColor: 'rgba(0,0,0,0.05)',
+    backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
   },
+  slotPeriodBadgeSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
   slotPeriodText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.primary,
   },
   slotTime: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   textBooked: {
@@ -315,9 +326,9 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeBookedText: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#64748B',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   badgeAvailable: {
     backgroundColor: colors.successLight,
@@ -325,15 +336,22 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: colors.successBorder,
   },
   badgeAvailableText: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.success,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   badgeSelected: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pointerCursor: {
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
 });

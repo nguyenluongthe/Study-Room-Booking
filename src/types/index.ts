@@ -1,3 +1,7 @@
+import type { NavigatorScreenParams, CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+
 export type RoomType = 'all' | 'lab' | 'library' | 'study_pod' | 'conference';
 
 export type RoomStatus = 'Available' | 'Occupied';
@@ -49,10 +53,6 @@ export interface FilterState {
   onlyAvailable: boolean;
 }
 
-import type { NavigatorScreenParams, CompositeScreenProps } from '@react-navigation/native';
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-
 export interface UserProfile {
   id: string;
   studentCode: string;
@@ -61,6 +61,11 @@ export interface UserProfile {
   department: string;
   avatarUrl: string;
   phone: string;
+  role?: 'student' | 'lecturer' | 'researcher';
+}
+
+export interface UserAccount extends UserProfile {
+  passwordHash?: string;
 }
 
 export type TabParamList = {
@@ -69,7 +74,13 @@ export type TabParamList = {
   Profile: undefined;
 };
 
+export type AuthStackParamList = {
+  Login: undefined;
+  Register: undefined;
+};
+
 export type RootStackParamList = {
+  Auth: undefined;
   MainTabs: NavigatorScreenParams<TabParamList> | undefined;
   RoomDetail: { roomId: string };
 };
@@ -83,4 +94,3 @@ export type TabScreenProps<T extends keyof TabParamList> = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, T>,
   NativeStackScreenProps<RootStackParamList>
 >;
-

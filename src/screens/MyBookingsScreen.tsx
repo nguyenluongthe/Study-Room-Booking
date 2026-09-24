@@ -35,169 +35,179 @@ export const MyBookingsScreen: React.FC = () => {
   const handleCancel = (booking: Booking) => {
     const doCancel = () => {
       cancelBooking(booking.id);
+      const msg = `Đã hủy đặt phòng ${booking.roomName}. Ca học đã được mở lại cho sinh viên khác.`;
       if (Platform.OS === 'web') {
-        window.alert(`Booking ${booking.id} has been cancelled and slot is now freed.`);
+        window.alert(msg);
       } else {
-        Alert.alert('Booking Cancelled', `Slot has been released for ${booking.roomName}.`);
+        Alert.alert('Đã hủy phiếu đặt', msg);
       }
     };
 
+    const confirmMsg = `Bạn có chắc chắn muốn hủy lượt đặt phòng "${booking.roomName}" vào ca ${booking.slotLabel} ngày ${booking.date}?`;
+
     if (Platform.OS === 'web') {
-      if (window.confirm(`Are you sure you want to cancel reservation for ${booking.roomName}?`)) {
+      if (window.confirm(confirmMsg)) {
         doCancel();
       }
     } else {
       Alert.alert(
-        'Cancel Reservation',
-        `Are you sure you want to release slot for ${booking.roomName}?`,
+        'Xác nhận hủy đặt phòng',
+        confirmMsg,
         [
-          { text: 'No, Keep', style: 'cancel' },
-          { text: 'Yes, Cancel', style: 'destructive', onPress: doCancel },
+          { text: 'Giữ lại', style: 'cancel' },
+          { text: 'Hủy đặt phòng', style: 'destructive', onPress: doCancel },
         ]
       );
     }
   };
 
+  const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
+    Confirmed: { label: 'Đang giữ', color: colors.success, bg: colors.successLight },
+    Cancelled: { label: 'Đã hủy', color: colors.error, bg: colors.errorLight },
+    Completed: { label: 'Hoàn thành', color: colors.textSecondary, bg: '#F1F5F9' },
+  };
+
   const renderBookingItem = ({ item }: { item: Booking }) => {
     const isConfirmed = item.status === 'Confirmed';
-    const isCancelled = item.status === 'Cancelled';
+    const statusMeta = statusLabels[item.status] || statusLabels.Confirmed;
 
     return (
-      <View style={styles.card}>
-        {/* Top Header Card */}
-        <View style={styles.cardHeader}>
+      <View style={styles.ticketCard}>
+        {/* Ticket Header */}
+        <View style={styles.ticketHeader}>
           <View style={styles.refBox}>
-            <Text style={styles.refLabel}>REF</Text>
+            <View style={styles.vkuDot} />
+            <Text style={styles.refLabel}>VKU PASS:</Text>
             <Text style={styles.refValue}>{item.id}</Text>
           </View>
 
-          <View
-            style={[
-              styles.statusBadge,
-              isConfirmed
-                ? styles.statusConfirmed
-                : isCancelled
-                ? styles.statusCancelled
-                : styles.statusCompleted,
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusText,
-                isConfirmed
-                  ? { color: colors.success }
-                  : isCancelled
-                  ? { color: colors.error }
-                  : { color: colors.textSecondary },
-              ]}
-            >
-              {item.status}
+          <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
+            <Text style={[styles.statusText, { color: statusMeta.color }]}>
+              {statusMeta.label}
             </Text>
           </View>
         </View>
 
-        {/* Body Info */}
-        <View style={styles.cardBody}>
+        {/* Ticket Body */}
+        <View style={styles.ticketBody}>
           <Image source={{ uri: item.roomImage }} style={styles.roomThumb} />
           <View style={styles.roomInfo}>
             <Text style={styles.roomName}>{item.roomName}</Text>
             <Text style={styles.roomBuilding}>
-              <Ionicons name="location-sharp" size={12} color={colors.textSecondary} />{' '}
+              <Ionicons name="business" size={12} color={colors.primary} />{' '}
               {item.roomBuilding}
             </Text>
 
             <View style={styles.slotRow}>
-              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+              <Ionicons name="calendar-outline" size={13} color={colors.primary} />
               <Text style={styles.dateText}>{item.date}</Text>
-              <Text style={styles.dotSeparator}>•</Text>
-              <Ionicons name="time-outline" size={14} color={colors.primary} />
+            </View>
+            <View style={styles.slotRow}>
+              <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
               <Text style={styles.slotText}>{item.slotLabel}</Text>
             </View>
           </View>
         </View>
 
-        {/* Purpose */}
-        {item.purpose ? (
-          <View style={styles.purposeRow}>
-            <Text style={styles.purposeLabel}>Purpose: </Text>
-            <Text style={styles.purposeText} numberOfLines={1}>
-              {item.purpose}
+        {/* Purpose & Student info */}
+        <View style={styles.metaBox}>
+          <Text style={styles.metaLine}>
+            <Text style={{ fontWeight: '700', color: colors.textPrimary }}>Người đăng ký:</Text> {item.studentName} ({item.studentId})
+          </Text>
+          {item.purpose ? (
+            <Text style={styles.metaLine} numberOfLines={1}>
+              <Text style={{ fontWeight: '700', color: colors.textPrimary }}>Mục đích:</Text> {item.purpose}
             </Text>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
 
-        {/* Action Button */}
-        {isConfirmed && (
-          <View style={styles.cardActions}>
+        {/* Decorative Ticket Cutouts & Barcode */}
+        <View style={styles.ticketFooter}>
+          <View style={styles.mockBarcode}>
+            <Ionicons name="barcode-outline" size={24} color={colors.textSecondary} />
+            <Text style={styles.barcodeText}>VKU-SPACE-{item.id.replace('VKU-BK-', '')}</Text>
+          </View>
+
+          {isConfirmed && (
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelBtn, styles.pointerCursor]}
               onPress={() => handleCancel(item)}
               activeOpacity={0.7}
             >
-              <Ionicons name="trash-outline" size={15} color={colors.error} />
-              <Text style={styles.cancelButtonText}>Cancel Reservation</Text>
+              <Ionicons name="trash-outline" size={13} color={colors.error} />
+              <Text style={styles.cancelBtnText}>Hủy giữ chỗ</Text>
             </TouchableOpacity>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     );
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Title */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Bookings</Text>
-        <Text style={styles.headerSubtitle}>Manage your campus study passes</Text>
-      </View>
-
-      {/* Tabs */}
-      <View style={styles.tabRow}>
-        {(['all', 'Confirmed', 'Completed', 'Cancelled'] as const).map((tab) => {
-          const isActive = activeTab === tab;
-          const count =
-            tab === 'all'
-              ? bookings.length
-              : bookings.filter((b) => b.status === tab).length;
-
-          return (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-              onPress={() => setActiveTab(tab)}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabBtnText, isActive && styles.tabBtnTextActive]}>
-                {tab === 'all' ? 'All' : tab} ({count})
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Bookings List */}
-      <FlatList
-        data={filteredBookings}
-        keyExtractor={(item) => item.id}
-        renderItem={renderBookingItem}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={56} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>No bookings found</Text>
-            <Text style={styles.emptySubtitle}>
-              You do not have any {activeTab === 'all' ? '' : activeTab.toLowerCase()} bookings yet.
-            </Text>
-            <TouchableOpacity
-              style={styles.browseRoomsBtn}
-              onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
-            >
-              <Text style={styles.browseRoomsBtnText}>Browse Available Rooms</Text>
-            </TouchableOpacity>
+      <View style={styles.webContainer}>
+        {/* Top Title */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>Phiếu Đặt Phòng VKU</Text>
+            <Text style={styles.headerSubtitle}>Quản lý thẻ thông hành phòng học & lab nghiên cứu</Text>
           </View>
-        }
-      />
+        </View>
+
+        {/* Filter Tabs */}
+        <View style={styles.tabRow}>
+          {[
+            { key: 'all', label: 'Tất cả' },
+            { key: 'Confirmed', label: 'Đang giữ' },
+            { key: 'Completed', label: 'Hoàn thành' },
+            { key: 'Cancelled', label: 'Đã hủy' },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            const count =
+              tab.key === 'all'
+                ? bookings.length
+                : bookings.filter((b) => b.status === tab.key).length;
+
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.tabBtn, isActive && styles.tabBtnActive, styles.pointerCursor]}
+                onPress={() => setActiveTab(tab.key as any)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.tabBtnText, isActive && styles.tabBtnTextActive]}>
+                  {tab.label} ({count})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Bookings List */}
+        <FlatList
+          data={filteredBookings}
+          keyExtractor={(item) => item.id}
+          renderItem={renderBookingItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="ticket-outline" size={54} color={colors.textMuted} />
+              <Text style={styles.emptyTitle}>Chưa có phiếu đặt nào</Text>
+              <Text style={styles.emptySubtitle}>
+                Bạn hiện không có phiếu đặt phòng nào trong mục này.
+              </Text>
+              <TouchableOpacity
+                style={[styles.browseRoomsBtn, styles.pointerCursor]}
+                onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
+              >
+                <Ionicons name="grid" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.browseRoomsBtnText}>Khám phá 100 phòng VKU</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      </View>
     </View>
   );
 };
@@ -205,34 +215,42 @@ export const MyBookingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F8FAFC',
+  },
+  webContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
   },
   header: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: colors.surface,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
     color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: 12,
     color: colors.textSecondary,
-    fontWeight: '500',
+    marginTop: 2,
   },
   tabRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     gap: 8,
   },
   tabBtn: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#F1F5F9',
@@ -247,69 +265,73 @@ const styles = StyleSheet.create({
   },
   tabBtnTextActive: {
     color: '#FFFFFF',
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
     gap: 14,
+    paddingBottom: 40,
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
+  ticketCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  cardHeader: {
+  ticketHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     backgroundColor: '#F8FAFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   refBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+  },
+  vkuDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
   },
   refLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.primary,
   },
   refValue: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 3,
     borderRadius: 6,
   },
-  statusConfirmed: {
-    backgroundColor: colors.successLight,
-  },
-  statusCancelled: {
-    backgroundColor: colors.errorLight,
-  },
-  statusCompleted: {
-    backgroundColor: '#F1F5F9',
-  },
   statusText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
   },
-  cardBody: {
+  ticketBody: {
     flexDirection: 'row',
-    padding: 14,
-    gap: 12,
+    padding: 16,
+    gap: 14,
   },
   roomThumb: {
-    width: 72,
-    height: 72,
+    width: 76,
+    height: 76,
     borderRadius: 10,
     backgroundColor: '#E2E8F0',
   },
@@ -319,7 +341,7 @@ const styles = StyleSheet.create({
   },
   roomName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   roomBuilding: {
@@ -330,57 +352,64 @@ const styles = StyleSheet.create({
   slotRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
+    marginTop: 3,
+    gap: 5,
   },
   dateText: {
     fontSize: 12,
     color: colors.primary,
-    fontWeight: '600',
-  },
-  dotSeparator: {
-    color: colors.textMuted,
-    fontSize: 12,
+    fontWeight: '700',
   },
   slotText: {
     fontSize: 12,
     color: colors.textPrimary,
     fontWeight: '600',
   },
-  purposeRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 14,
-    paddingBottom: 10,
+  metaBox: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 4,
   },
-  purposeLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
-    fontWeight: '500',
-  },
-  purposeText: {
+  metaLine: {
     fontSize: 12,
     color: colors.textSecondary,
-    flex: 1,
   },
-  cardActions: {
+  ticketFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    paddingHorizontal: 14,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
     paddingVertical: 10,
-    alignItems: 'flex-end',
+    backgroundColor: '#FFFFFF',
   },
-  cancelButton: {
+  mockBarcode: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  barcodeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  cancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     backgroundColor: colors.errorLight,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  cancelButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+  cancelBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
     color: colors.error,
   },
   emptyContainer: {
@@ -390,28 +419,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: colors.textPrimary,
     marginTop: 12,
   },
   emptySubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 18,
   },
   browseRoomsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 16,
     backgroundColor: colors.primary,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
   browseRoomsBtnText: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 13,
+  },
+  pointerCursor: {
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
 });

@@ -17,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, TimeSlot } from '../types';
 import { useRoomDetailsQuery } from '../services/roomService';
 import { useBookingStore } from '../store/useBookingStore';
+import { useAuthStore } from '../store/useAuthStore';
 import { SlotSelector } from '../components/SlotSelector';
 import { colors } from '../theme/colors';
 
@@ -31,18 +32,18 @@ export const RoomDetailModal: React.FC = () => {
 
   const { data: room, isLoading } = useRoomDetailsQuery(roomId);
   const addBooking = useBookingStore((state) => state.addBooking);
-  const user = useBookingStore((state) => state.user);
+  const currentUser = useAuthStore((state) => state.user);
 
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [purpose, setPurpose] = useState<string>('Self-study & Group Discussion');
+  const [purpose, setPurpose] = useState<string>('Nghiên cứu khoa học & Học tập nhóm VKU');
   const [bookingSuccessInfo, setBookingSuccessInfo] = useState<{ id: string } | null>(null);
 
   const getEarliestAvailableSlot = useBookingStore((state) => state.getEarliestAvailableSlot);
 
-  // Auto pre-select the earliest available slot so user can book in 1 tap without hassle
+  // Auto pre-select earliest available slot for friction-free booking
   React.useEffect(() => {
     if (room && !selectedSlot) {
       const earliest = getEarliestAvailableSlot(room.id);
@@ -56,18 +57,15 @@ export const RoomDetailModal: React.FC = () => {
   if (isLoading || !room) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <Text style={styles.loadingText}>Loading room details...</Text>
+        <Text style={styles.loadingText}>Đang tải thông tin phòng học VKU...</Text>
       </View>
     );
   }
 
   const handleConfirmBooking = () => {
     if (!selectedSlot) {
-      if (Platform.OS === 'web') {
-        window.alert('Please select an available time slot before proceeding.');
-      } else {
-        Alert.alert('Select a Time Slot', 'Please choose an available slot first.');
-      }
+      const msg = 'Vui lòng chọn ca học còn trống trước khi bấm xác nhận.';
+      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Chưa chọn ca học', msg);
       return;
     }
 
@@ -80,7 +78,7 @@ export const RoomDetailModal: React.FC = () => {
       date: selectedDate,
       slotId: selectedSlot.id,
       slotLabel: selectedSlot.label,
-      purpose: purpose.trim() || 'Study Session',
+      purpose: purpose.trim() || 'Học tập & Nghiên cứu',
     });
 
     if (result.success && result.bookingId) {
@@ -89,141 +87,152 @@ export const RoomDetailModal: React.FC = () => {
       if (Platform.OS === 'web') {
         window.alert(result.message);
       } else {
-        Alert.alert('Booking Error', result.message);
+        Alert.alert('Không thể đặt phòng', result.message);
       }
     }
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Top Header Bar */}
-      <View style={styles.headerBar}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {room.name}
-        </Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Room Photo Banner */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: room.imageUrl }} style={styles.image} resizeMode="cover" />
-          <View style={styles.capacityBadge}>
-            <Ionicons name="people" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
-            <Text style={styles.capacityText}>{room.capacity} seats</Text>
-          </View>
+      <View style={styles.webContainer}>
+        {/* Top Header Bar */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            style={[styles.backButton, styles.pointerCursor]}
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {room.name}
+          </Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        {/* Room Information */}
-        <View style={styles.infoSection}>
-          <View style={styles.titleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.roomName}>{room.name}</Text>
-              <Text style={styles.locationText}>
-                {room.building} • {room.floor}
-              </Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Room Photo Banner */}
+          <View style={styles.imageContainer}>
+            <Image source={{ uri: room.imageUrl }} style={styles.image} resizeMode="cover" />
+            <View style={styles.capacityBadge}>
+              <Ionicons name="people" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+              <Text style={styles.capacityText}>{room.capacity} chỗ ngồi</Text>
             </View>
-            <View style={styles.ratingBadge}>
-              <Ionicons name="star" size={16} color="#F59E0B" />
-              <Text style={styles.ratingText}>{room.rating}</Text>
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeText}>{room.building}</Text>
             </View>
           </View>
 
-          <Text style={styles.description}>{room.description}</Text>
-
-          {/* Amenities Grid */}
-          <Text style={styles.subHeading}>Room Facilities</Text>
-          <View style={styles.amenitiesGrid}>
-            {room.amenities.map((item, idx) => (
-              <View key={idx} style={styles.amenityChip}>
-                <Ionicons name="checkmark-circle" size={15} color={colors.primary} />
-                <Text style={styles.amenityChipText}>{item}</Text>
+          {/* Room Information */}
+          <View style={styles.infoSection}>
+            <View style={styles.titleRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.roomName}>{room.name}</Text>
+                <Text style={styles.locationText}>
+                  <Ionicons name="location-sharp" size={13} color={colors.primary} />{' '}
+                  {room.building} • {room.floor}
+                </Text>
               </View>
-            ))}
-          </View>
+              <View style={styles.ratingBadge}>
+                <Ionicons name="star" size={15} color="#F59E0B" />
+                <Text style={styles.ratingText}>{room.rating.toFixed(2)}</Text>
+              </View>
+            </View>
 
-          {/* Conflict Prevention & Slot Selector */}
-          <View style={styles.divider} />
-          <SlotSelector
-            roomId={room.id}
-            selectedDate={selectedDate}
-            selectedSlotId={selectedSlot?.id || null}
-            onSelectDate={(date) => {
-              setSelectedDate(date);
-              setSelectedSlot(null); // reset selected slot when date changes
-            }}
-            onSelectSlot={(slot) => setSelectedSlot(slot)}
-          />
+            <Text style={styles.description}>{room.description}</Text>
 
-          {/* Purpose of Booking */}
-          <View style={styles.purposeBox}>
-            <Text style={styles.subHeading}>Booking Purpose</Text>
-            <TextInput
-              style={styles.purposeInput}
-              value={purpose}
-              onChangeText={setPurpose}
-              placeholder="e.g. AI project research, Midterm revision..."
-              placeholderTextColor={colors.textMuted}
+            {/* Amenities Grid */}
+            <Text style={styles.subHeading}>Trang thiết bị & Tiện nghi phòng</Text>
+            <View style={styles.amenitiesGrid}>
+              {room.amenities.map((item, idx) => (
+                <View key={idx} style={styles.amenityChip}>
+                  <Ionicons name="checkmark-circle" size={15} color={colors.primary} />
+                  <Text style={styles.amenityChipText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Slot Selector */}
+            <View style={styles.divider} />
+            <SlotSelector
+              roomId={room.id}
+              selectedDate={selectedDate}
+              selectedSlotId={selectedSlot?.id || null}
+              onSelectDate={(date) => {
+                setSelectedDate(date);
+                setSelectedSlot(null);
+              }}
+              onSelectSlot={(slot) => setSelectedSlot(slot)}
             />
-            <Text style={styles.studentInfoHint}>
-              Booking under: <Text style={{ fontWeight: '600' }}>{user.name}</Text> ({user.studentCode})
+
+            {/* Purpose of Booking */}
+            <View style={styles.purposeBox}>
+              <Text style={styles.subHeading}>Mục đích sử dụng phòng</Text>
+              <TextInput
+                style={styles.purposeInput}
+                value={purpose}
+                onChangeText={setPurpose}
+                placeholder="vd: Họp nhóm Đồ án Tốt nghiệp, Thực hành Lab AI..."
+                placeholderTextColor={colors.textMuted}
+              />
+              {currentUser && (
+                <View style={styles.studentBadgeBox}>
+                  <Ionicons name="person-circle-outline" size={16} color={colors.primary} />
+                  <Text style={styles.studentInfoHint}>
+                    Đăng ký dưới tên: <Text style={{ fontWeight: '700', color: colors.textPrimary }}>{currentUser.name}</Text> ({currentUser.studentCode} - {currentUser.department})
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Success Dialog Modal Card */}
+            {bookingSuccessInfo && (
+              <View style={styles.successCard}>
+                <Ionicons name="checkmark-circle" size={32} color={colors.success} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.successTitle}>Đặt phòng thành công!</Text>
+                  <Text style={styles.successMsg}>
+                    Mã phiếu: <Text style={{ fontWeight: '800' }}>{bookingSuccessInfo.id}</Text>
+                  </Text>
+                  <Text style={styles.successMsgSub}>
+                    {selectedDate} • {selectedSlot?.label}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.viewBookingsBtn, styles.pointerCursor]}
+                  onPress={() => {
+                    navigation.goBack();
+                    navigation.navigate('MainTabs', { screen: 'MyBookings' });
+                  }}
+                >
+                  <Text style={styles.viewBookingsBtnText}>Xem vé</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        {/* Bottom CTA Bar */}
+        <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.selectedSlotSummary}>
+            <Text style={styles.summaryLabel}>Ca học đã chọn</Text>
+            <Text style={styles.summaryValue} numberOfLines={1}>
+              {selectedSlot ? `${selectedSlot.label}` : 'Chưa chọn ca học'}
             </Text>
           </View>
 
-          {/* Success Dialog Modal Card */}
-          {bookingSuccessInfo && (
-            <View style={styles.successCard}>
-              <Ionicons name="checkmark-circle" size={32} color={colors.success} />
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.successTitle}>Booking Successful!</Text>
-                <Text style={styles.successMsg}>
-                  Ref ID: <Text style={{ fontWeight: '700' }}>{bookingSuccessInfo.id}</Text>
-                </Text>
-                <Text style={styles.successMsgSub}>
-                  {selectedDate} • {selectedSlot?.label}
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.viewBookingsBtn}
-                onPress={() => {
-                  navigation.goBack();
-                  navigation.navigate('MainTabs', { screen: 'MyBookings' });
-                }}
-              >
-                <Text style={styles.viewBookingsBtnText}>My Bookings</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <TouchableOpacity
+            style={[styles.confirmButton, !selectedSlot && styles.confirmButtonDisabled, styles.pointerCursor]}
+            onPress={handleConfirmBooking}
+            disabled={!selectedSlot}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.confirmButtonText}>Xác nhận Giữ Chỗ</Text>
+          </TouchableOpacity>
         </View>
-      </ScrollView>
-
-      {/* Bottom CTA Bar */}
-      <View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.selectedSlotSummary}>
-          <Text style={styles.summaryLabel}>Selected Slot</Text>
-          <Text style={styles.summaryValue}>
-            {selectedSlot ? `${selectedSlot.label}` : 'No slot chosen'}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.confirmButton, !selectedSlot && styles.confirmButtonDisabled]}
-          onPress={handleConfirmBooking}
-          disabled={!selectedSlot}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.confirmButtonText}>Confirm Reservation</Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -232,7 +241,17 @@ export const RoomDetailModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: '#F8FAFC',
+  },
+  webContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 860,
+    alignSelf: 'center',
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#E2E8F0',
   },
   loadingContainer: {
     flex: 1,
@@ -240,7 +259,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
   },
   headerBar: {
@@ -248,23 +267,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    backgroundColor: '#FFFFFF',
   },
   backButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: colors.textPrimary,
   },
   scrollContent: {
     paddingBottom: 110,
   },
   imageContainer: {
-    height: 220,
+    height: 250,
     width: '100%',
     position: 'relative',
     backgroundColor: '#E2E8F0',
@@ -281,7 +301,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 8,
   },
   capacityText: {
@@ -289,8 +309,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  typeBadge: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  typeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
   infoSection: {
-    padding: 16,
+    padding: 18,
   },
   titleRow: {
     flexDirection: 'row',
@@ -304,9 +338,9 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   locationText: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 2,
+    marginTop: 3,
   },
   ratingBadge: {
     flexDirection: 'row',
@@ -316,21 +350,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
   },
   ratingText: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#B45309',
   },
   description: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
-    lineHeight: 20,
+    lineHeight: 19,
     marginVertical: 10,
   },
   subHeading: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     color: colors.textPrimary,
     marginBottom: 8,
     marginTop: 6,
@@ -349,11 +385,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
   },
   amenityChipText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   divider: {
     height: 1,
@@ -366,39 +404,49 @@ const styles = StyleSheet.create({
   },
   purposeInput: {
     backgroundColor: '#F8FAFC',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textPrimary,
     marginTop: 4,
   },
+  studentBadgeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
   studentInfoHint: {
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 6,
+    fontSize: 11,
+    color: colors.textSecondary,
+    flex: 1,
   },
   successCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.successLight,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#86EFAC',
     borderRadius: 12,
-    padding: 14,
+    padding: 12,
     marginVertical: 12,
   },
   successTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: '#15803D',
   },
   successMsg: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#166534',
-    marginTop: 2,
+    marginTop: 1,
   },
   successMsgSub: {
     fontSize: 11,
@@ -407,36 +455,36 @@ const styles = StyleSheet.create({
   viewBookingsBtn: {
     backgroundColor: '#15803D',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   viewBookingsBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.08,
+        shadowRadius: 5,
       },
       android: {
-        elevation: 6,
+        elevation: 8,
       },
     }),
   },
@@ -445,14 +493,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   summaryLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textMuted,
-    fontWeight: '500',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   summaryValue: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     color: colors.textPrimary,
     marginTop: 2,
   },
@@ -469,7 +517,14 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  pointerCursor: {
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
 });
