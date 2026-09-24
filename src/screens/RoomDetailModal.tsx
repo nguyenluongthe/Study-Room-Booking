@@ -197,7 +197,7 @@ export const RoomDetailModal: React.FC = () => {
                 style={styles.viewBookingsBtn}
                 onPress={() => {
                   navigation.goBack();
-                  navigation.navigate('MainTabs');
+                  navigation.navigate('MainTabs', { screen: 'MyBookings' });
                 }}
               >
                 <Text style={styles.viewBookingsBtnText}>My Bookings</Text>

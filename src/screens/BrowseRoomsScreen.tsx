@@ -92,9 +92,10 @@ export const BrowseRoomsScreen: React.FC = () => {
   );
 
   const renderItem = useCallback(
-    ({ item }: ListRenderItemInfo<Room>) => (
+    ({ item, index }: ListRenderItemInfo<Room>) => (
       <RoomCard
         room={item}
+        index={index}
         onPress={handleRoomPress}
         onQuickBook={handleQuickBook}
       />
@@ -126,7 +127,7 @@ export const BrowseRoomsScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.activeBookingBadge}
-          onPress={() => navigation.navigate('MainTabs')}
+          onPress={() => navigation.navigate('MainTabs', { screen: 'MyBookings' })}
           activeOpacity={0.7}
         >
           <Ionicons name="calendar" size={16} color={colors.primary} />
@@ -151,7 +152,7 @@ export const BrowseRoomsScreen: React.FC = () => {
             style={styles.toastActionBtn}
             onPress={() => {
               setQuickBookToast(null);
-              navigation.navigate('MainTabs');
+              navigation.navigate('MainTabs', { screen: 'MyBookings' });
             }}
           >
             <Text style={styles.toastActionText}>Xem vé</Text>

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { Room } from '../types';
 import { useBookingStore } from '../store/useBookingStore';
@@ -14,11 +15,12 @@ import { colors } from '../theme/colors';
 
 interface RoomCardProps {
   room: Room;
+  index?: number;
   onPress: (room: Room) => void;
   onQuickBook: (room: Room) => void;
 }
 
-export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress, onQuickBook }) => {
+export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, index = 0, onPress, onQuickBook }) => {
   const isAvailable = room.status === 'Available';
   const getEarliestAvailableSlot = useBookingStore((state) => state.getEarliestAvailableSlot);
 
@@ -28,11 +30,14 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress, on
   }, [room.id, getEarliestAvailableSlot]);
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => onPress(room)}
-      activeOpacity={0.9}
+    <Animated.View
+      entering={FadeInDown.delay(Math.min(index * 60, 360)).duration(400).springify().damping(15)}
     >
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() => onPress(room)}
+        activeOpacity={0.9}
+      >
       {/* Room Photo */}
       <View style={styles.imageWrapper}>
         <Image
@@ -142,6 +147,7 @@ export const RoomCard: React.FC<RoomCardProps> = React.memo(({ room, onPress, on
         </View>
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 });
 

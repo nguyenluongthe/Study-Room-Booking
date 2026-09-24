@@ -191,7 +191,7 @@ export const MyBookingsScreen: React.FC = () => {
             </Text>
             <TouchableOpacity
               style={styles.browseRoomsBtn}
-              onPress={() => navigation.navigate('MainTabs')}
+              onPress={() => navigation.navigate('MainTabs', { screen: 'BrowseRooms' })}
             >
               <Text style={styles.browseRoomsBtnText}>Browse Available Rooms</Text>
             </TouchableOpacity>

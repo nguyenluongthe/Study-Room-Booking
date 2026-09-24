@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Booking, FilterState, Room, RoomType, TimeSlot, UserProfile } from '../types';
 import { MOCK_ROOMS, TIME_SLOTS } from '../data/mockRooms';
 
@@ -94,16 +96,18 @@ interface BookingStoreState {
   resetFilters: () => void;
 }
 
-export const useBookingStore = create<BookingStoreState>((set, get) => ({
-  user: INITIAL_USER,
-  bookings: INITIAL_BOOKINGS,
-  filters: {
-    search: '',
-    building: null,
-    minCapacity: null,
-    roomType: 'all',
-    onlyAvailable: false,
-  },
+export const useBookingStore = create<BookingStoreState>()(
+  persist(
+    (set, get) => ({
+      user: INITIAL_USER,
+      bookings: INITIAL_BOOKINGS,
+      filters: {
+        search: '',
+        building: null,
+        minCapacity: null,
+        roomType: 'all',
+        onlyAvailable: false,
+      },
 
   addBooking: (bookingData) => {
     const { bookings, user } = get();
@@ -259,4 +263,15 @@ export const useBookingStore = create<BookingStoreState>((set, get) => ({
       },
     }));
   },
-}));
+}),
+    {
+      name: 'study-room-booking-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({
+        bookings: state.bookings,
+        user: state.user,
+      }),
+    }
+  )
+);
+

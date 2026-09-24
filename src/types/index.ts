@@ -49,6 +49,10 @@ export interface FilterState {
   onlyAvailable: boolean;
 }
 
+import type { NavigatorScreenParams, CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+
 export interface UserProfile {
   id: string;
   studentCode: string;
@@ -59,13 +63,24 @@ export interface UserProfile {
   phone: string;
 }
 
-export type RootStackParamList = {
-  MainTabs: undefined;
-  RoomDetail: { roomId: string };
-};
-
 export type TabParamList = {
   BrowseRooms: undefined;
   MyBookings: undefined;
   Profile: undefined;
 };
+
+export type RootStackParamList = {
+  MainTabs: NavigatorScreenParams<TabParamList> | undefined;
+  RoomDetail: { roomId: string };
+};
+
+export type RootStackScreenProps<T extends keyof RootStackParamList> = NativeStackScreenProps<
+  RootStackParamList,
+  T
+>;
+
+export type TabScreenProps<T extends keyof TabParamList> = CompositeScreenProps<
+  BottomTabScreenProps<TabParamList, T>,
+  NativeStackScreenProps<RootStackParamList>
+>;
+
